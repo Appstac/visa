@@ -1,0 +1,53 @@
+name: Log visa slot sightings
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # GitHub may delay scheduled runs by a few minutes
+  workflow_dispatch: {}     # "Run workflow" button for a manual check
+
+permissions:
+  contents: write
+
+concurrency:
+  group: poll
+  cancel-in-progress: false
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Check out data branch
+        run: |
+          git fetch origin data:data 2>/dev/null || true
+          if git show-ref --quiet refs/heads/data; then
+            git worktree add databranch data
+          else
+            git worktree add --detach databranch
+            cd databranch
+            git checkout --orphan data
+            git rm -rf --quiet . || true
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch and log sightings
+        run: python scripts/poll.py databranch
+
+      - name: Commit data
+        working-directory: databranch
+        run: |
+          git config user.name "slot-logger[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nothing new."
+          else
+            git commit -q -m "data: $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push -q origin data
+          fi

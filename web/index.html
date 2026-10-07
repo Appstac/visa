@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visa Slot Trends</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f4f3ef; --surface-1:#fcfcfb; --border:#e3e1da;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#8a8984;
+  --grid:#ecebe6; --series-1:#2a78d6; --series-1-soft:#2a78d61f;
+  --good:#008300;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --bg:#111110; --surface-1:#1a1a19; --border:#2e2d2a;
+    --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e86;
+    --grid:#262624; --series-1:#3987e5; --series-1-soft:#3987e526; --good:#4fb34f;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#111110; --surface-1:#1a1a19; --border:#2e2d2a;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8f8e86;
+  --grid:#262624; --series-1:#3987e5; --series-1-soft:#3987e526; --good:#4fb34f;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text-primary);
+  font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:14px}
+h1{font-size:20px;margin:0;font-weight:650}
+.sub{color:var(--text-secondary);font-size:13px}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 16px}
+.filters label{font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:3px}
+select,button{font:inherit;font-size:13px;padding:6px 10px;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary)}
+button{cursor:pointer;align-self:flex-end}
+button:hover{border-color:var(--series-1)}
+a.btn{align-self:flex-end;font-size:13px;padding:6px 10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface-1);color:var(--text-primary);text-decoration:none}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:12px}
+.card{background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.kpi .v{font-size:24px;font-weight:650;letter-spacing:-.01em}
+.kpi .l{font-size:12px;color:var(--text-secondary)}
+.kpi .n{font-size:12px;color:var(--text-muted);margin-top:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.card h2{font-size:14px;margin:0 0 2px;font-weight:600}
+.card .hint{font-size:12px;color:var(--text-muted);margin:0 0 10px}
+.chartbox{position:relative;height:240px}
+.heatscroll{overflow-x:auto}
+.heat{min-width:560px;display:grid;grid-template-columns:38px repeat(24,1fr);gap:2px;font-size:10px}
+.heat .hl{color:var(--text-muted);display:flex;align-items:center}
+.heat .hh{color:var(--text-muted);text-align:center}
+.heat .c{aspect-ratio:1/1;border-radius:3px;background:var(--grid);position:relative}
+.heat .c:hover{outline:2px solid var(--text-primary)}
+#tip{position:fixed;pointer-events:none;background:var(--surface-1);border:1px solid var(--border);
+  color:var(--text-primary);padding:6px 9px;border-radius:8px;font-size:12px;display:none;z-index:9;
+  box-shadow:0 4px 14px #0002}
+.legend{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted);margin-top:8px}
+.legend span.sw{width:14px;height:10px;border-radius:2px;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;white-space:nowrap;padding:7px 8px;border-bottom:1px solid var(--grid)}
+th{font-weight:600;color:var(--text-secondary);font-size:12px}
+td.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--border);color:var(--text-secondary)}
+.tag.ofc{border-color:var(--series-1);color:var(--series-1)}
+.tablewrap{max-height:380px;overflow:auto}
+.empty{color:var(--text-muted);padding:30px;text-align:center}
+.status{font-size:12px;color:var(--text-muted)}
+.status b{color:var(--good)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Visa Slot Trends</h1>
+    <span class="sub" id="sub">Loading…</span>
+  </header>
+
+  <div class="filters">
+    <label>Visa type <select id="fVisa"></select></label>
+    <label>Slot kind
+      <select id="fKind">
+        <option value="ofc">OFC / biometrics (VAC)</option>
+        <option value="int">Consular interview</option>
+        <option value="all">All</option>
+      </select></label>
+    <label>Location <select id="fLoc"><option value="">All locations</option></select></label>
+    <label>Range
+      <select id="fRange">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="0">All time</option>
+      </select></label>
+    <label>Show times in
+      <select id="fTz">
+        <option value="Asia/Kolkata">India (IST)</option>
+        <option value="America/Chicago">Central (CT)</option>
+      </select></label>
+    <a class="btn" id="runLink" target="_blank" rel="noopener" title="Open GitHub Actions to run a check now">Check now ↗</a>
+    <a class="btn" id="csvLink">Export CSV</a>
+  </div>
+
+  <div class="kpis">
+    <div class="card kpi"><div class="l">Sightings logged</div><div class="v" id="kTotal">–</div><div class="n" id="kTotalN"></div></div>
+    <div class="card kpi"><div class="l">Busiest hour</div><div class="v" id="kHour">–</div><div class="n" id="kHourN"></div></div>
+    <div class="card kpi"><div class="l">Busiest day</div><div class="v" id="kDay">–</div><div class="n" id="kDayN"></div></div>
+    <div class="card kpi"><div class="l">Last sighting</div><div class="v" id="kLast">–</div><div class="n" id="kLastN"></div></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <h2>When do slots appear? — day × hour</h2>
+    <p class="hint">Each cell counts slot sightings reported in that hour. Darker = more often. Use this to pick when to log in.</p>
+    <div class="heatscroll"><div class="heat" id="heat"></div></div>
+    <div class="legend" id="heatLegend"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Sightings by hour of day</h2>
+      <p class="hint" id="hourHint"></p>
+      <div class="chartbox"><canvas id="cHour" role="img" aria-label="Openings by hour of day"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Sightings by location</h2>
+      <p class="hint">Where slots were reported most in this range.</p>
+      <div class="chartbox"><canvas id="cLoc" role="img" aria-label="Openings by location"></canvas></div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Sightings per day</h2>
+      <p class="hint">Is availability picking up or drying up?</p>
+      <div class="chartbox"><canvas id="cDaily" role="img" aria-label="Openings per day"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Earliest appointment date offered</h2>
+      <p class="hint">How far out the earliest date was at each sighting. Lower = sooner slots.</p>
+      <div class="chartbox"><canvas id="cEarly" role="img" aria-label="Earliest appointment date offered over time"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Recent sightings</h2>
+    <p class="hint">Crowdsourced via CheckVisaSlots — always confirm in the official portal before booking.</p>
+    <div class="tablewrap"><table>
+      <thead><tr><th>Seen</th><th>Location</th><th>Kind</th><th>Earliest date</th><th style="text-align:right">Slots</th><th style="text-align:right">Dates open</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </div>
+  <p class="status" id="status"></p>
+</div>
+<div id="tip"></div>
+
+<script>
+// Where the GitHub Action stores the data (branch "data" of this repo)
+const REPO = "Appstac/visa";
+const DATA_BASE = `https://raw.githubusercontent.com/${REPO}/data/`;
+const $ = id => document.getElementById(id);
+const esc = s => String(s??"").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const DAYS = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+let DATA = null, charts = {};
+
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+
+function parts(iso, tz){
+  const d = new Date(iso);
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US",{timeZone:tz,hourCycle:"h23",
+    weekday:"short",hour:"2-digit",year:"numeric",month:"2-digit",day:"2-digit"})
+    .formatToParts(d).map(x=>[x.type,x.value]));
+  return {hour:+p.hour % 24, dow:DAYS.indexOf(p.weekday), day:`${p.year}-${p.month}-${p.day}`};
+}
+function fmtTime(iso, tz){
+  return new Date(iso).toLocaleString("en-US",{timeZone:tz,month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
+}
+function hourLabel(h){ const s=h<12?"AM":"PM"; return `${(h%12)||12} ${s}`; }
+function ago(iso){
+  const m = (Date.now()-new Date(iso))/60000;
+  if (m<60) return `${Math.round(m)} min ago`;
+  if (m<1440) return `${Math.round(m/60)} hr ago`;
+  return `${Math.round(m/1440)} days ago`;
+}
+
+function filtered(){
+  const visa=$("fVisa").value, kind=$("fKind").value, loc=$("fLoc").value, days=+$("fRange").value;
+  const cutoff = days ? Date.now()-days*864e5 : 0;
+  return DATA.sightings.filter(s =>
+    (!visa || s.slug===visa) &&
+    (kind==="all" || (kind==="ofc") === !!s.is_ofc) &&
+    (!loc || s.location===loc) &&
+    new Date(s.seen_at_utc).getTime() >= cutoff);
+}
+
+function baseOpts(extra={}){
+  const grid=css("--grid"), muted=css("--text-muted");
+  return Object.assign({responsive:true, maintainAspectRatio:false, animation:false,
+    plugins:{legend:{display:false}, tooltip:{intersect:false, mode:"index"}},
+    scales:{x:{grid:{display:false},ticks:{color:muted,font:{size:11}},border:{color:grid}},
+            y:{beginAtZero:true,grid:{color:grid},ticks:{color:muted,precision:0,font:{size:11}},border:{display:false}}}},extra);
+}
+function draw(id, cfg){ if(charts[id]) charts[id].destroy(); charts[id]=new Chart($(id),cfg); }
+
+function render(){
+  const tz=$("fTz").value, tzName = tz==="Asia/Kolkata" ? "IST" : "CT";
+  const rows=filtered(), blue=css("--series-1");
+  const P = rows.map(r=>({...r, ...parts(r.seen_at_utc,tz)}));
+
+  // KPIs
+  $("kTotal").textContent = rows.length;
+  $("kTotalN").textContent = `${new Set(rows.map(r=>r.location)).size} locations`;
+  const byHour = Array(24).fill(0), byDow=Array(7).fill(0), heat=[...Array(7)].map(()=>Array(24).fill(0));
+  P.forEach(p=>{byHour[p.hour]++; byDow[p.dow]++; heat[p.dow][p.hour]++;});
+  const maxH = Math.max(...byHour), maxD=Math.max(...byDow);
+  if (rows.length){
+    const h=byHour.indexOf(maxH), d=byDow.indexOf(maxD);
+    $("kHour").textContent = `${hourLabel(h)}–${hourLabel((h+1)%24)}`; $("kHourN").textContent=`${maxH} sightings · ${tzName}`;
+    $("kDay").textContent = DAYS[d]; $("kDayN").textContent=`${maxD} sightings`;
+    const last=rows[rows.length-1];
+    $("kLast").textContent = ago(last.seen_at_utc);
+    $("kLastN").textContent = `${last.location} · earliest ${last.earliest_date}`;
+  } else ["kHour","kDay","kLast"].forEach(k=>{$(k).textContent="–"; $(k+"N").textContent="";});
+
+  // Heatmap
+  const heatEl=$("heat"); heatEl.innerHTML="";
+  heatEl.insertAdjacentHTML("beforeend",`<div></div>`+[...Array(24)].map((_,h)=>`<div class="hh">${h%3===0?hourLabel(h).replace(" ",""):""}</div>`).join(""));
+  const maxCell=Math.max(1,...heat.flat());
+  heat.forEach((row,d)=>{
+    heatEl.insertAdjacentHTML("beforeend",`<div class="hl">${DAYS[d]}</div>`);
+    row.forEach((n,h)=>{
+      const pct = n ? Math.round(18 + 82*n/maxCell) : 0;
+      const bg = n ? `color-mix(in oklab, ${blue} ${pct}%, ${css("--surface-1")})` : "";
+      heatEl.insertAdjacentHTML("beforeend",
+        `<div class="c" style="${bg?`background:${bg}`:""}" data-t="${DAYS[d]} ${hourLabel(h)}–${hourLabel((h+1)%24)} ${tzName}: <b>${n}</b> sighting${n===1?"":"s"}"></div>`);
+    });
+  });
+  $("heatLegend").innerHTML = `Fewer <span class="sw" style="background:var(--grid)"></span>`+
+    [25,50,75,100].map(p=>`<span class="sw" style="background:color-mix(in oklab, ${blue} ${p}%, ${css("--surface-1")})"></span>`).join("")+
+    ` More &nbsp;·&nbsp; max ${maxCell} per cell · times in ${tzName}`;
+
+  // Hour bars
+  $("hourHint").textContent = `Times in ${tzName}. Tall bars = hours worth checking.`;
+  draw("cHour",{type:"bar",data:{labels:byHour.map((_,h)=>hourLabel(h)),
+    datasets:[{label:"Sightings",data:byHour,backgroundColor:blue,borderRadius:{topLeft:4,topRight:4},borderSkipped:"bottom",maxBarThickness:22}]},
+    options:baseOpts({scales:{...baseOpts().scales,x:{...baseOpts().scales.x,ticks:{...baseOpts().scales.x.ticks,autoSkip:true,maxRotation:0}}}})});
+
+  // Location bars
+  const locCount={}; rows.forEach(r=>locCount[r.location]=(locCount[r.location]||0)+1);
+  const locs=Object.entries(locCount).sort((a,b)=>b[1]-a[1]);
+  const o=baseOpts({indexAxis:"y"}); o.scales={x:{...baseOpts().scales.y},y:{...baseOpts().scales.x}};
+  draw("cLoc",{type:"bar",data:{labels:locs.map(l=>l[0]),
+    datasets:[{label:"Sightings",data:locs.map(l=>l[1]),backgroundColor:blue,borderRadius:{topRight:4,bottomRight:4},borderSkipped:"left",maxBarThickness:22}]},options:o});
+
+  // Daily line
+  const daily={}; P.forEach(p=>daily[p.day]=(daily[p.day]||0)+1);
+  const dayKeys=[]; if (P.length){ let d=new Date(P[0].day+"T00:00:00"), end=new Date(P[P.length-1].day+"T00:00:00");
+    while(d<=end){ dayKeys.push(d.toISOString().slice(0,10)); d=new Date(d.getTime()+864e5);} }
+  draw("cDaily",{type:"line",data:{labels:dayKeys.map(k=>k.slice(5)),
+    datasets:[{label:"Sightings",data:dayKeys.map(k=>daily[k]||0),borderColor:blue,backgroundColor:css("--series-1-soft"),
+      fill:true,borderWidth:2,pointRadius:dayKeys.length>40?0:3,pointHoverRadius:5,tension:.25}]},options:baseOpts()});
+
+  // Earliest date scatter (days out)
+  const pts=rows.filter(r=>/^\d{4}-\d{2}-\d{2}$/.test(r.earliest_date)).map(r=>{
+    const out=Math.round((new Date(r.earliest_date+"T00:00:00Z")-new Date(r.seen_at_utc))/864e5);
+    return {x:new Date(r.seen_at_utc).getTime(), y:out, r};});
+  const eo=baseOpts({plugins:{legend:{display:false},tooltip:{callbacks:{
+      title:c=>fmtTime(c[0].raw.r.seen_at_utc,tz)+" "+tzName,
+      label:c=>`${c.raw.r.location}: earliest ${c.raw.r.earliest_date} (${c.raw.y} days out)`}}}});
+  eo.scales.x={type:"linear",grid:{display:false},border:{color:css("--grid")},
+    ticks:{color:css("--text-muted"),font:{size:11},maxTicksLimit:6,callback:v=>new Date(v).toLocaleDateString("en-US",{timeZone:tz,month:"short",day:"numeric"})}};
+  eo.scales.y.title={display:true,text:"Days until earliest date",color:css("--text-muted"),font:{size:11}};
+  draw("cEarly",{type:"scatter",data:{datasets:[{label:"Earliest date",data:pts,backgroundColor:blue,
+    borderColor:css("--surface-1"),borderWidth:2,pointRadius:5,pointHoverRadius:7}]},options:eo});
+
+  // Table
+  $("tbody").innerHTML = rows.length ? rows.slice(-200).reverse().map(r=>
+    `<tr><td>${fmtTime(r.seen_at_utc,tz)} ${tzName}</td><td>${esc(r.location)}</td>
+     <td><span class="tag ${r.is_ofc?"ofc":""}">${r.is_ofc?"OFC":"Interview"}</span></td>
+     <td>${esc(r.earliest_date)}</td><td class="num">${r.slots_on_earliest??"–"}</td><td class="num">${r.total_dates??"–"}</td></tr>`).join("")
+    : `<tr><td colspan="6" class="empty">No sightings in this range yet — leave the tracker running and trends will build up.</td></tr>`;
+}
+
+async function load(){
+  const bust = "?t=" + Math.floor(Date.now()/60000);
+  let sightings=[], st={};
+  try{
+    const [a,b] = await Promise.all([fetch(DATA_BASE+"sightings.json"+bust), fetch(DATA_BASE+"status.json"+bust)]);
+    if (a.ok) sightings = await a.json();
+    if (b.ok) st = await b.json();
+  }catch(e){ console.warn(e); }
+  DATA = {sightings, visa_types: st.visa_types || [...new Set(sightings.map(s=>s.slug))], poll_minutes: st.poll_minutes || 5};
+  if (!DATA.visa_types.length) DATA.visa_types=["h-1b-regular"];
+  const visaSel=$("fVisa"), cur=visaSel.value;
+  visaSel.innerHTML = DATA.visa_types.map(v=>`<option value="${esc(v)}">${esc(v.toUpperCase())}</option>`).join("");
+  if (cur) visaSel.value=cur;
+  const locSel=$("fLoc"), curL=locSel.value;
+  const locs=[...new Set(sightings.map(s=>s.location))].sort();
+  locSel.innerHTML = `<option value="">All locations</option>`+locs.map(l=>`<option>${esc(l)}</option>`).join("");
+  locSel.value=curL;
+  $("sub").textContent = `Logged every ~${DATA.poll_minutes} min by GitHub Actions from CheckVisaSlots' public page`;
+  $("status").innerHTML = st.last_poll_utc
+    ? `<b style="color:${st.last_ok?"var(--good)":"#e34948"}">●</b> ${st.last_ok?"Logger healthy":"Last check failed"} · logging since ${new Date(st.first_poll_utc).toLocaleString()} · last saved ${ago(st.last_written_utc||st.last_poll_utc)}`+
+      (st.last_error ? ` · last error ${ago(st.last_error.at_utc)}: ${esc(st.last_error.error)}` : "")
+    : "Waiting for the first check from GitHub Actions…";
+  render();
+}
+
+["fVisa","fKind","fLoc","fRange","fTz"].forEach(id=>$(id).addEventListener("change",render));
+$("runLink").href=`https://github.com/${REPO}/actions/workflows/poll.yml`;
+$("csvLink").href=DATA_BASE+"sightings.csv";
+const tip=$("tip");
+document.addEventListener("mousemove",e=>{
+  const t=e.target.closest?.(".c[data-t]");
+  if(!t){tip.style.display="none";return;}
+  tip.innerHTML=t.dataset.t; tip.style.display="block";
+  tip.style.left=Math.min(e.clientX+12, innerWidth-tip.offsetWidth-8)+"px"; tip.style.top=(e.clientY+14)+"px";
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>DATA&&render());
+load(); setInterval(load, 60000);
+</script>
+</body>
+</html>
