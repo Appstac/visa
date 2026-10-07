@@ -1,0 +1,18 @@
+{
+  "polls_total": 1,
+  "polls_ok": 0,
+  "first_poll_utc": "2026-10-07T21:04:51+00:00",
+  "last_poll_utc": "2026-10-07T21:04:51+00:00",
+  "last_ok": false,
+  "last_error": {
+    "at_utc": "2026-10-07T21:04:51+00:00",
+    "error": "h-1b-regular: HTTP Error 429: Too Many Requests"
+  },
+  "visa_types": [
+    "h-1b-regular"
+  ],
+  "poll_minutes": 5,
+  "_prev_ok": false,
+  "last_written_utc": "2026-10-07T21:04:51+00:00",
+  "sightings_total": 0
+}
