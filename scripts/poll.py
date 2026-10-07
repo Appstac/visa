@@ -37,6 +37,9 @@ def load(path, default):
 
 
 def main():
+    if not CONFIG.get("enabled", True):
+        print("paused (config.json enabled=false) - not fetching")
+        return
     DATA.mkdir(parents=True, exist_ok=True)
     sightings = load(DATA / "sightings.json", [])
     status = load(DATA / "status.json", {"polls_total": 0, "polls_ok": 0})
