@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: "*/5 * * * *"   # GitHub may delay scheduled runs by a few minutes
   workflow_dispatch: {}     # "Run workflow" button for a manual check
+  push:                     # also run right after the logger or config changes
+    branches: [main]
+    paths: ["config.json", "scripts/**", ".github/workflows/poll.yml"]
 
 permissions:
   contents: write
