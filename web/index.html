@@ -81,6 +81,7 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
     <h1>Visa Slot Trends</h1>
     <span class="sub" id="sub">Loading…</span>
   </header>
+  <p class="status" id="status" style="margin:-6px 0 12px"></p>
 
   <div class="filters">
     <label>Visa type <select id="fVisa"></select></label>
@@ -154,7 +155,6 @@ td.num{text-align:right;font-variant-numeric:tabular-nums}
       <tbody id="tbody"></tbody>
     </table></div>
   </div>
-  <p class="status" id="status"></p>
 </div>
 <div id="tip"></div>
 
@@ -302,11 +302,19 @@ async function load(){
   const locs=[...new Set(sightings.map(s=>s.location))].sort();
   locSel.innerHTML = `<option value="">All locations</option>`+locs.map(l=>`<option>${esc(l)}</option>`).join("");
   locSel.value=curL;
-  $("sub").textContent = `Logged every ~${DATA.poll_minutes} min by GitHub Actions from CheckVisaSlots' public page`;
-  $("status").innerHTML = st.last_poll_utc
-    ? `<b style="color:${st.last_ok?"var(--good)":"#e34948"}">●</b> ${st.last_ok?"Logger healthy":"Last check failed"} · logging since ${new Date(st.first_poll_utc).toLocaleString()} · last saved ${ago(st.last_written_utc||st.last_poll_utc)}`+
-      (st.last_error ? ` · last error ${ago(st.last_error.at_utc)}: ${esc(st.last_error.error)}` : "")
-    : "Waiting for the first check from GitHub Actions…";
+  $("sub").textContent = `Logged every ~${DATA.poll_minutes} min by the home laptop from CheckVisaSlots' public page`;
+  if (!st.last_poll_utc){ $("status").textContent = "Waiting for the first check from the home laptop…"; }
+  else {
+    const lastSaved = st.last_written_utc || st.last_poll_utc;
+    const quietMin = (Date.now() - new Date(lastSaved)) / 60000;
+    const offline = quietMin > 90;            // logger saves at least hourly
+    const ok = st.last_ok && !offline;
+    const msg = offline ? `Laptop hasn't reported for ${ago(lastSaved).replace(" ago","")} — check it's on, awake and online`
+                        : st.last_ok ? "Logger healthy" : "Last check failed";
+    const recentErr = st.last_error && (Date.now() - new Date(st.last_error.at_utc)) < 864e5;
+    $("status").innerHTML = `<b style="color:${ok?"var(--good)":"#e34948"}">●</b> ${msg} · logging since ${new Date(st.first_poll_utc).toLocaleString()} · last saved ${ago(lastSaved)}`+
+      (recentErr ? ` · last error ${ago(st.last_error.at_utc)}: ${esc(st.last_error.error)}` : "");
+  }
   render();
 }
 
