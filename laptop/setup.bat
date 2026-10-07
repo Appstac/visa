@@ -2,20 +2,22 @@
 setlocal
 title Visa Slot Logger - setup
 cd /d "%~dp0\.."
+set "P=pause"
+if /i "%~1"=="quiet" set "P=rem"
 echo.
 echo === Visa Slot Logger setup ===
 echo Repo folder: %CD%
 echo.
 
-where git >nul 2>nul || (echo [X] Git is not installed. Get it from https://git-scm.com/download/win then run this again. & pause & exit /b 1)
+where git >nul 2>nul || (echo [X] Git is not installed. Get it from https://git-scm.com/download/win then run this again. & %P% & exit /b 1)
 
 set "PY="
 where py >nul 2>nul && set "PY=py -3"
 if not defined PY (where python >nul 2>nul && set "PY=python")
-if not defined PY (echo [X] Python is not installed. Get it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^) then run this again. & pause & exit /b 1)
+if not defined PY (echo [X] Python is not installed. Get it from https://www.python.org/downloads/ ^(tick "Add python.exe to PATH"^) then run this again. & %P% & exit /b 1)
 
 for /f "delims=" %%i in ('%PY% -c "import sys,os;print(os.path.join(os.path.dirname(sys.executable),'pythonw.exe'))"') do set "PYW=%%i"
-if not exist "%PYW%" (echo [X] Could not find pythonw.exe & pause & exit /b 1)
+if not exist "%PYW%" (echo [X] Could not find pythonw.exe & %P% & exit /b 1)
 echo [OK] Git and Python found.
 
 git config user.name >nul 2>nul || git config user.name "slot-logger"
@@ -34,7 +36,7 @@ echo.
 echo Adding the logger to Windows startup...
 set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 > "%STARTUP%\VisaSlotLogger.cmd" echo @start "" "%PYW%" "%CD%\laptop\run_logger.py"
-if not exist "%STARTUP%\VisaSlotLogger.cmd" (echo [X] Could not add to startup. & pause & exit /b 1)
+if not exist "%STARTUP%\VisaSlotLogger.cmd" (echo [X] Could not add to startup. & %P% & exit /b 1)
 start "" "%PYW%" "%CD%\laptop\run_logger.py"
 echo [OK] Logger is running in the background and will start again at every sign-in.
 
@@ -52,4 +54,4 @@ echo.
 echo Still to do by hand: Settings ^> System ^> Power ^> Lid close action ^> "Do nothing" (plugged in),
 echo and make sure Windows signs in automatically after a restart or update.
 echo.
-pause
+%P%
